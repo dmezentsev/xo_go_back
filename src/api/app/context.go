@@ -44,7 +44,7 @@ type Participant struct {
 
 func NewApp() *Context {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &Context{context: ctx, Cancel: cancel}
+	return &Context{context: ctx, Cancel: cancel, rooms: make(map[UIDType]*RoomContext)}
 }
 
 func (app *Context) GetRoom(roomUID UIDType) (*RoomContext, error) {
