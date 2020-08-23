@@ -78,5 +78,8 @@ func (app *Context) generateRoomUID() UIDType {
 			break
 		}
 	}
-	return "9ae53419-a0c4-4c53-ab06-14c1dcb5808b"
+	if app.Mode == DebugMode {
+		return "9ae53419-a0c4-4c53-ab06-14c1dcb5808b"
+	}
+	return roomUid
 }

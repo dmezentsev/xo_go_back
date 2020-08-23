@@ -143,12 +143,15 @@ func (room *RoomContext) generateParticipantUID() UIDType {
 			break
 		}
 	}
-	uids := []UIDType{
-		"9ae53419-a0c4-4c53-ab06-14c1dcb5808b",
-		"_9ae53419-a0c4-4c53-ab06-14c1dcb5808b",
-		"~9ae53419-a0c4-4c53-ab06-14c1dcb5808b",
-		"=9ae53419-a0c4-4c53-ab06-14c1dcb5808b",
+	if room.App.Mode == DebugMode {
+		uids := []UIDType{
+			"9ae53419-a0c4-4c53-ab06-14c1dcb5808b",
+			"_9ae53419-a0c4-4c53-ab06-14c1dcb5808b",
+			"~9ae53419-a0c4-4c53-ab06-14c1dcb5808b",
+			"=9ae53419-a0c4-4c53-ab06-14c1dcb5808b",
+		}
+		return uids[len(room.Participants) % len(uids)]
 	}
-	return uids[len(room.Participants) % len(uids)]
+	return participantUid
 }
 
