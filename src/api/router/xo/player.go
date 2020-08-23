@@ -2,107 +2,93 @@ package xo
 
 import (
 	"api/app"
+	"api/bus"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/labstack/echo"
 )
 
 type Player struct {
 	*app.Participant
 	Sign SignType
-	MoveEmitter app.Emitter
+	MoveEmitter bus.Emitter
 }
 
-const MoveEventType = app.EventType("xo_move")
+const MoveEventType = bus.EventType("xo_move")
 
 type MoveEvent struct {
-	app.Event
+	bus.Event
 	X int `json:"x"`
 	Y int `json:"y"`
 }
 
-type EndGameResultType string
-//const WinResult = EndGameResultType("xo_win")
-//const LooseResult = EndGameResultType("xo_loose")
-//const DrawResult = EndGameResultType("xo_draw")
-
-type EndGameEvent struct {
-	Result EndGameResultType `json:"result"`
-}
-
 func (g *Game) NewPlayer(room *app.RoomContext) (*Player, error) {
+	g.mux.Lock()
+	defer g.mux.Unlock()
+	if len(g.players) >= 2 {
+		return nil, errors.New("must be only two players")
+	}
 	participant, err := room.NewParticipant()
 	if err != nil {
 		return nil, err
 	}
+	var sign SignType
+	if len(g.players) == 0 {
+		sign = XSign
+	} else {
+		sign = OSign
+	}
 	player := &Player{
 		Participant: participant,
-		Sign: XSign, // TODO: define as rule
+		Sign: sign,
 	}
+	g.players = append(g.players, player)
 	player.MoveEmitter = g.Bus.NewEmitter(MoveEventType, player)
-	participant.Bus.NewCallback(app.MessageAcceptedEvent, player.onMessageReceive, nil)
+	participant.Bus.NewCallback(app.MessageAcceptedEventType, player.onMessageReceive, nil)
+	participant.Bus.NewCallback(app.ConnectEventType, player.onUserConnect, g.Board)
 	g.Bus.NewCallback(BoardChangesEventType, player.onBoardChanged, nil)
-	g.Bus.NewCallback(EndGameEventType, player.onBoardChanged, nil)
+	g.Bus.NewCallback(EndGameEventType, player.onEndGame, nil)
 	return player, nil
 }
 
-func (player *Player) onMessageReceive(args app.CallbackArgs) {
-	fmt.Printf("%+v\n", args)
-	msg := app.Event{}
+func (player *Player) onBoardChanged(args bus.CallbackArgs) error {
+	player.Absorber <- BuildBoardStateMessage(args.Initiator.(*Board))
+	return nil
+}
+
+func (player *Player) onUserConnect(args bus.CallbackArgs) error {
+	player.Absorber <- BuildBoardStateMessage(args.Meta.(*Board))
+	return nil
+}
+
+func (player *Player) onMessageReceive(args bus.CallbackArgs) error {
+	msg := bus.Event{}
 	if err := json.Unmarshal(args.Event.GetPayload().([]byte), &msg); err != nil {
-		return
+		return err
 	}
 	switch msg.Type {
 	case MoveEventType:
 		move := MoveEvent{}
 		if err := json.Unmarshal(args.Event.GetPayload().([]byte), &move); err != nil {
-			return
+			return err
 		}
 		player.MoveEmitter.Emitter <- move
+	default:
+		return errors.New(fmt.Sprintf(`unknown event type "%s"`, msg.Type))
 	}
+	return nil
 }
 
-func (player *Player) onBoardChanged(args app.CallbackArgs) {
-	fmt.Printf("%+v\n", args)
-	player.Participant.Absorber <- BuildBoardState(args.Initiator.(*Game).Board)
-}
-
-func (player *Player) onEndGame(args app.CallbackArgs) {
-	fmt.Printf("%+v\n", args)
-	fmt.Println("Calculate won player + Emit message to participant Absorber?")
-}
-
-func (r *RouterContext) ConnectPlayer(e echo.Context) error {
-	var err error
-
-	defer func() {
-		if err != nil {
-			e.Logger().Error(err)
-		}
-	}()
-
-	e.Logger().Debug("Initialize client start")
-	room, err := r.App.GetRoom(app.UIDType(e.Param("roomUID")))
-	if err != nil {
-		e.Logger().Error(err)
-		return err
+func (player *Player) onEndGame(args bus.CallbackArgs) error {
+	wonSign := args.Event.GetPayload().(SignType)
+	var result GameResultType
+	if wonSign == player.Sign {
+		result = WinResult
+	} else if wonSign == EmptySign {
+		result = DrawResult
+	} else {
+		result = LooseResult
 	}
-	participant, err := room.GetParticipant(app.UIDType(e.Param("participantUID")))
-	if err != nil {
-		e.Logger().Error(err)
-		return err
-	}
-
-	transport, err := app.NewWsTransport(e)
-	if err != nil {
-		e.Logger().Error(err)
-		return err
-	}
-
-	if err = participant.Connect(transport); err != nil {
-		e.Logger().Error(err)
-		return err
-	}
-
+	player.Absorber <- BuildPlayerEndGameMessage(result)
 	return nil
 }

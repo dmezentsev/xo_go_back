@@ -1,4 +1,4 @@
-package app
+package bus
 
 import (
 	"sync"
@@ -39,6 +39,10 @@ type cancelling struct {
 	Cancelled bool
 }
 
+func (c *cancelling) Open() {
+	c.Cancelled = false
+}
+
 func (c *cancelling) Cancel() {
 	c.Cancelled = true
 }
@@ -55,11 +59,13 @@ type Emitter struct {
 }
 
 type CallbackMetaType interface{}
-type CallbackFnType func(CallbackArgs)
+type CallbackFnType func(CallbackArgs) error
+type OnErrorCallbackFnType func(OnErrorCallbackArgs)
 
 type Callback struct {
 	Callback CallbackFnType
 	Meta     CallbackMetaType
+	OnError OnErrorCallbackFnType
 	cancelling
 }
 
@@ -69,6 +75,10 @@ type CallbackArgs struct {
 	Meta CallbackMetaType
 }
 
+type OnErrorCallbackArgs struct {
+	 Error error
+}
+
 type Bus struct {
 	emitters []Emitter
 	subscribers map[EventType][]Callback
@@ -76,15 +86,17 @@ type Bus struct {
 	subscribersMux sync.RWMutex
 	cancelling
 	Latency time.Duration
+	Description string
 }
 
 const defaultLatency = 50 * time.Millisecond
 
-func NewBus() *Bus {
+func NewBus(desc string) *Bus {
 	return &Bus{
 		emitters: make([]Emitter, 0),
 		subscribers: make(map[EventType][]Callback),
 		Latency: defaultLatency,
+		Description: desc,
 	}
 }
 
@@ -147,7 +159,12 @@ func (e *Emitter) Serve(initiator interface{}, b *Bus) {
 			}
 			for _, cb := range cbs {
 				if !cb.IsCancelled() {
-					go cb.Callback(CallbackArgs{initiator, event, cb.Meta})
+					go func() {
+						err := cb.Callback(CallbackArgs{initiator, event, cb.Meta})
+						if err != nil {
+							// TODO: logging error
+						}
+					}()
 				}
 			}
 		case <-ticker.C:

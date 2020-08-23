@@ -1,6 +1,7 @@
 package app
 
 import (
+	"api/bus"
 	"context"
 	"errors"
 	"fmt"
@@ -13,7 +14,7 @@ type RoomContext struct {
 	UID              UIDType
 	App              *Context
 	Meta          interface{}
-	Bus *Bus
+	Bus *bus.Bus
 	context          context.Context
 	Cancel           context.CancelFunc
 	lastModified     time.Time
@@ -31,29 +32,30 @@ func (app *Context) GetRoom(roomUID UIDType) (*RoomContext, error) {
 	return room, nil
 }
 
-func (app *Context) NewRoom(meta interface{}) (*RoomContext, error) {
+func (app *Context) NewRoom() (*RoomContext, error) {
 	app.roomMutex.Lock()
 	defer app.roomMutex.Unlock()
 	roomUID := app.generateRoomUID()
 	ctx, cancel := context.WithCancel(context.Background())
-	bus := NewBus()
-	c := func() {
-		bus.Cancel()
-		cancel()
-	}
 	participants := make(map[UIDType]*Participant)
 	room := &RoomContext{
 		UID:          roomUID,
 		App:          app,
-		Meta:      meta,
-		Bus: NewBus(),
 		lastModified: time.Now(),
 		context:      ctx,
-		Cancel:       c,
 		Participants: participants,
+	}
+	room.Bus = bus.NewBus(room.String())
+	room.Cancel = func() {
+		room.Bus.Cancel()
+		cancel()
 	}
 	app.rooms[roomUID] = room
 	return room, nil
+}
+
+func (room *RoomContext) String() string {
+	return fmt.Sprintf("<Room %s %+v>", room.UID, room.Meta)
 }
 
 func (app *Context) DeleteRoom(roomUID UIDType) error {

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"api/bus"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,13 +10,18 @@ import (
 )
 
 type Participant struct {
-	UID          UIDType
-	Room         *RoomContext
-	Bus *Bus
-	Absorber     chan Message
-	Connected    bool
-	lastModified time.Time
-	Meta         interface{}
+	UID               UIDType
+	Room              *RoomContext
+	Bus               *bus.Bus
+	Absorber          chan Message
+	connectionEmitter bus.Emitter
+	Connected         bool
+	lastModified      time.Time
+	Meta              interface{}
+}
+
+func (p *Participant) String() string {
+	return fmt.Sprintf("<Participant: %s>", p.UID)
 }
 
 func (room *RoomContext) GetParticipant(participantUID UIDType) (*Participant, error) {
@@ -47,11 +53,11 @@ func (room *RoomContext) NewParticipant() (*Participant, error) {
 	participant := &Participant{
 		UID:          participantUID,
 		Room:         room,
-		Bus: NewBus(),
 		lastModified: time.Now(),
 		Absorber:     make(chan Message),
 		Connected:    false,
 	}
+	participant.Bus = bus.NewBus(participant.String())
 	room.Participants[participantUID] = participant
 	return participant, nil
 }
@@ -68,14 +74,15 @@ func (room *RoomContext) DeleteParticipant(UID UIDType) error {
 	return nil
 }
 
-const MessageAcceptedEvent = EventType("message_accepted")
+const MessageAcceptedEventType = bus.EventType("message_accepted")
+const ConnectEventType = bus.EventType("connect")
 
 func (p *Participant) Connect(transport *Transport) error {
 	if p.Connected {
 		return errors.New("participant already connected")
 	}
 	p.Connected = true
-	emitter := p.Bus.NewEmitter(MessageAcceptedEvent, p)
+	emitter := p.Bus.NewEmitter(MessageAcceptedEventType, p)
 
 	go func() {
 		defer func() {
@@ -112,7 +119,7 @@ func (p *Participant) Connect(transport *Transport) error {
 		for {
 			select {
 			case msg := <-transport.Reader:
-				emitter.Emitter <- Event{Payload: msg}
+				emitter.Emitter <- bus.Event{Payload: msg}
 			case <- transport.Context.Done():
 				return
 			default:
@@ -120,6 +127,7 @@ func (p *Participant) Connect(transport *Transport) error {
 			}
 		}
 	}()
+	p.Bus.NewEmitter(ConnectEventType, p).Emitter <- bus.Event{}
 	return nil
 }
 
@@ -135,6 +143,12 @@ func (room *RoomContext) generateParticipantUID() UIDType {
 			break
 		}
 	}
-	return "9ae53419-a0c4-4c53-ab06-14c1dcb5808b"
+	uids := []UIDType{
+		"9ae53419-a0c4-4c53-ab06-14c1dcb5808b",
+		"_9ae53419-a0c4-4c53-ab06-14c1dcb5808b",
+		"~9ae53419-a0c4-4c53-ab06-14c1dcb5808b",
+		"=9ae53419-a0c4-4c53-ab06-14c1dcb5808b",
+	}
+	return uids[len(room.Participants) % len(uids)]
 }
 
