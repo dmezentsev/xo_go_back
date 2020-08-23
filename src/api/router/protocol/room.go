@@ -3,7 +3,7 @@ package protocol
 import "api/app"
 
 type RoomResponse struct {
-	UID app.UIDType
+	UID app.UIDType `json:"uid"`
 }
 
 func RoomSerialize(r *app.RoomContext) RoomResponse {

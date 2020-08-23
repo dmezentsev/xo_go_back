@@ -1,7 +1,11 @@
 package router
 
-import "api/app"
+import (
+	"api/app"
+	"github.com/gorilla/websocket"
+)
 
 type Context struct {
-	App *app.Context
+	App      *app.Context
+	Upgrader websocket.Upgrader
 }
