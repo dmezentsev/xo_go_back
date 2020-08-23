@@ -3,6 +3,6 @@ package app
 type MessageType string
 
 type Message struct {
-	Type MessageType `json:"type"`
+	Type    MessageType `json:"type"`
 	Payload interface{} `json:"payload"`
 }

@@ -10,7 +10,7 @@ import (
 
 type Player struct {
 	*app.Participant
-	Sign SignType
+	Sign        SignType
 	MoveEmitter bus.Emitter
 }
 
@@ -40,7 +40,7 @@ func (g *Game) NewPlayer(room *app.RoomContext) (*Player, error) {
 	}
 	player := &Player{
 		Participant: participant,
-		Sign: sign,
+		Sign:        sign,
 	}
 	g.players = append(g.players, player)
 	player.MoveEmitter = g.Bus.NewEmitter(MoveEventType, player, player.onErrorMove)

@@ -9,12 +9,13 @@ const MoveErrorMessageType = app.MessageType("xo_move_error")
 
 func BuildBoardStateMessage(b *Board) app.Message {
 	return app.Message{
-		Type: BoardStateMessageType,
+		Type:    BoardStateMessageType,
 		Payload: b.Fields,
 	}
 }
 
 type GameResultType string
+
 const WinResult = GameResultType("xo_win")
 const LooseResult = GameResultType("xo_loose")
 const DrawResult = GameResultType("xo_draw")
@@ -33,10 +34,9 @@ func BuildWatcherEndGameMessage(result SignType) app.Message {
 	}
 }
 
-
 func BuildErrorMoveMessage(err error) app.Message {
 	return app.Message{
-		Type: MoveErrorMessageType,
+		Type:    MoveErrorMessageType,
 		Payload: err.Error(),
 	}
 }

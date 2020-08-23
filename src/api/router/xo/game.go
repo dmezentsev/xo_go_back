@@ -12,29 +12,29 @@ const BoardChangesEventType = bus.EventType("xo_board_changes")
 const EndGameEventType = bus.EventType("xo_end_game")
 
 type Board struct {
-	Fields         [][]SignType `json:"board"`
-	changesEmitter bus.Emitter
-	endGameEmitter bus.Emitter
-	mux            sync.RWMutex
+	Fields          [][]SignType `json:"board"`
+	changesEmitter  bus.Emitter
+	endGameEmitter  bus.Emitter
+	mux             sync.RWMutex
 	currentSignMove SignType
-	rows int
-	cols int
-	complete bool
+	rows            int
+	cols            int
+	complete        bool
 }
 
 type Game struct {
-	Room *app.RoomContext
-	Board *Board
-	Bus *bus.Bus
-	mux sync.RWMutex
+	Room    *app.RoomContext
+	Board   *Board
+	Bus     *bus.Bus
+	mux     sync.RWMutex
 	players []*Player
 }
 
 func NewGame(room *app.RoomContext) *Game {
 	board := NewBoard(3, 3)
 	g := &Game{
-		Room: room,
-		Board: board,
+		Room:    room,
+		Board:   board,
 		players: make([]*Player, 0),
 	}
 	g.Bus = bus.NewBus(g.String())

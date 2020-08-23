@@ -101,7 +101,7 @@ func (p *Participant) Connect(transport *Transport) error {
 					continue
 				}
 				transport.Writer <- data
-			case <- transport.Context.Done():
+			case <-transport.Context.Done():
 				return
 			default:
 				time.Sleep(100 * time.Millisecond)
@@ -120,7 +120,7 @@ func (p *Participant) Connect(transport *Transport) error {
 			select {
 			case msg := <-transport.Reader:
 				emitter.Emitter <- bus.Event{Payload: msg}
-			case <- transport.Context.Done():
+			case <-transport.Context.Done():
 				return
 			default:
 				time.Sleep(100 * time.Millisecond)
@@ -150,8 +150,7 @@ func (room *RoomContext) generateParticipantUID() UIDType {
 			"~9ae53419-a0c4-4c53-ab06-14c1dcb5808b",
 			"=9ae53419-a0c4-4c53-ab06-14c1dcb5808b",
 		}
-		return uids[len(room.Participants) % len(uids)]
+		return uids[len(room.Participants)%len(uids)]
 	}
 	return participantUid
 }
-

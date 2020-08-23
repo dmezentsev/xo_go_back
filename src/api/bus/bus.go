@@ -14,7 +14,7 @@ type IEvent interface {
 }
 
 type Event struct {
-	Type EventType `json:"type"`
+	Type    EventType   `json:"type"`
 	Payload interface{} `json:"payload"`
 }
 
@@ -71,8 +71,8 @@ type Callback struct {
 
 type CallbackArgs struct {
 	Initiator interface{}
-	Event IEvent
-	Meta CallbackMetaType
+	Event     IEvent
+	Meta      CallbackMetaType
 }
 
 type OnErrorCallbackArgs struct {
@@ -81,12 +81,12 @@ type OnErrorCallbackArgs struct {
 }
 
 type Bus struct {
-	emitters []Emitter
-	subscribers map[EventType][]Callback
-	emitterMux sync.RWMutex
+	emitters       []Emitter
+	subscribers    map[EventType][]Callback
+	emitterMux     sync.RWMutex
 	subscribersMux sync.RWMutex
 	cancelling
-	Latency time.Duration
+	Latency     time.Duration
 	Description string
 }
 
@@ -94,9 +94,9 @@ const defaultLatency = 50 * time.Millisecond
 
 func NewBus(desc string) *Bus {
 	return &Bus{
-		emitters: make([]Emitter, 0),
+		emitters:    make([]Emitter, 0),
 		subscribers: make(map[EventType][]Callback),
-		Latency: defaultLatency,
+		Latency:     defaultLatency,
 		Description: desc,
 	}
 }
@@ -105,7 +105,7 @@ func (b *Bus) NewEmitter(et EventType, initiator interface{}, onError OnErrorCal
 	e := Emitter{
 		eventType: et,
 		Emitter:   make(chan IEvent),
-		OnError: onError,
+		OnError:   onError,
 	}
 	b.RegisterEmitter(e, initiator)
 	return e

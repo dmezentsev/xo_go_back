@@ -16,15 +16,15 @@ type Context struct {
 	rooms     map[UIDType]*RoomContext
 	roomMutex sync.RWMutex
 	Cancel    context.CancelFunc
-	Mode string
+	Mode      string
 }
 
 func NewApp(mode string) *Context {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Context{
 		context: ctx,
-		Cancel: cancel,
-		Mode: mode,
-		rooms: make(map[UIDType]*RoomContext),
+		Cancel:  cancel,
+		Mode:    mode,
+		rooms:   make(map[UIDType]*RoomContext),
 	}
 }

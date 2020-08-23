@@ -13,8 +13,8 @@ import (
 type RoomContext struct {
 	UID              UIDType
 	App              *Context
-	Meta          interface{}
-	Bus *bus.Bus
+	Meta             interface{}
+	Bus              *bus.Bus
 	context          context.Context
 	Cancel           context.CancelFunc
 	lastModified     time.Time
