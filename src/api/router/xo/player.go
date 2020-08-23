@@ -43,7 +43,7 @@ func (g *Game) NewPlayer(room *app.RoomContext) (*Player, error) {
 		Sign: sign,
 	}
 	g.players = append(g.players, player)
-	player.MoveEmitter = g.Bus.NewEmitter(MoveEventType, player)
+	player.MoveEmitter = g.Bus.NewEmitter(MoveEventType, player, player.onErrorMove)
 	participant.Bus.NewCallback(app.MessageAcceptedEventType, player.onMessageReceive, nil)
 	participant.Bus.NewCallback(app.ConnectEventType, player.onUserConnect, g.Board)
 	g.Bus.NewCallback(BoardChangesEventType, player.onBoardChanged, nil)
@@ -91,4 +91,8 @@ func (player *Player) onEndGame(args bus.CallbackArgs) error {
 	}
 	player.Absorber <- BuildPlayerEndGameMessage(result)
 	return nil
+}
+
+func (player *Player) onErrorMove(args bus.OnErrorCallbackArgs) {
+	player.Absorber <- BuildErrorMoveMessage(args.Error)
 }

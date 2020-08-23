@@ -56,6 +56,7 @@ type Emitter struct {
 	Emitter   chan IEvent
 	cancelling
 	Latency time.Duration
+	OnError OnErrorCallbackFnType
 }
 
 type CallbackMetaType interface{}
@@ -65,7 +66,6 @@ type OnErrorCallbackFnType func(OnErrorCallbackArgs)
 type Callback struct {
 	Callback CallbackFnType
 	Meta     CallbackMetaType
-	OnError OnErrorCallbackFnType
 	cancelling
 }
 
@@ -76,7 +76,8 @@ type CallbackArgs struct {
 }
 
 type OnErrorCallbackArgs struct {
-	 Error error
+	CallbackArgs
+	Error error
 }
 
 type Bus struct {
@@ -100,10 +101,11 @@ func NewBus(desc string) *Bus {
 	}
 }
 
-func (b *Bus) NewEmitter(et EventType, initiator interface{}) Emitter {
+func (b *Bus) NewEmitter(et EventType, initiator interface{}, onError OnErrorCallbackFnType) Emitter {
 	e := Emitter{
 		eventType: et,
 		Emitter:   make(chan IEvent),
+		OnError: onError,
 	}
 	b.RegisterEmitter(e, initiator)
 	return e
@@ -159,18 +161,23 @@ func (e *Emitter) Serve(initiator interface{}, b *Bus) {
 			}
 			for _, cb := range cbs {
 				if !cb.IsCancelled() {
-					go func() {
-						err := cb.Callback(CallbackArgs{initiator, event, cb.Meta})
-						if err != nil {
-							// TODO: logging error
-						}
-					}()
+					go e.runCallback(cb, initiator, event)
 				}
 			}
 		case <-ticker.C:
 			if e.Cancelled {
 				return
 			}
+		}
+	}
+}
+
+func (e *Emitter) runCallback(cb Callback, initiator interface{}, event IEvent) {
+	args := CallbackArgs{initiator, event, cb.Meta}
+	err := cb.Callback(args)
+	if err != nil {
+		if e.OnError != nil {
+			e.OnError(OnErrorCallbackArgs{CallbackArgs: args, Error: err})
 		}
 	}
 }

@@ -38,8 +38,8 @@ func NewGame(room *app.RoomContext) *Game {
 		players: make([]*Player, 0),
 	}
 	g.Bus = bus.NewBus(g.String())
-	g.Board.changesEmitter = g.Bus.NewEmitter(BoardChangesEventType, board)
-	g.Board.endGameEmitter = g.Bus.NewEmitter(EndGameEventType, board)
+	g.Board.changesEmitter = g.Bus.NewEmitter(BoardChangesEventType, board, nil)
+	g.Board.endGameEmitter = g.Bus.NewEmitter(EndGameEventType, board, nil)
 	g.Bus.NewCallback(MoveEventType, g.onMove, nil)
 	return g
 }

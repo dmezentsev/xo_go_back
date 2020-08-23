@@ -82,7 +82,7 @@ func (p *Participant) Connect(transport *Transport) error {
 		return errors.New("participant already connected")
 	}
 	p.Connected = true
-	emitter := p.Bus.NewEmitter(MessageAcceptedEventType, p)
+	emitter := p.Bus.NewEmitter(MessageAcceptedEventType, p, nil)
 
 	go func() {
 		defer func() {
@@ -127,7 +127,7 @@ func (p *Participant) Connect(transport *Transport) error {
 			}
 		}
 	}()
-	p.Bus.NewEmitter(ConnectEventType, p).Emitter <- bus.Event{}
+	p.Bus.NewEmitter(ConnectEventType, p, nil).Emitter <- bus.Event{}
 	return nil
 }
 
