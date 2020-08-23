@@ -6,7 +6,29 @@ import (
 )
 
 type EventType string
-type IEvent interface {}
+
+type IEvent interface {
+	SetType(et EventType)
+	GetPayload() interface{}
+	GetType() EventType
+}
+
+type Event struct {
+	Type EventType `json:"type"`
+	Payload interface{} `json:"payload"`
+}
+
+func (e Event) SetType(et EventType) {
+	e.Type = et
+}
+
+func (e Event) GetPayload() interface{} {
+	return e.Payload
+}
+
+func (e Event) GetType() EventType {
+	return e.Type
+}
 
 type ICancelling interface {
 	Cancel()
@@ -27,18 +49,24 @@ func (c *cancelling) IsCancelled() bool {
 
 type Emitter struct {
 	eventType EventType
-	ch chan IEvent
+	Emitter   chan IEvent
 	cancelling
 	Latency time.Duration
 }
 
 type CallbackMetaType interface{}
-type CallbackFnType func(e IEvent, m CallbackMetaType)
+type CallbackFnType func(CallbackArgs)
 
 type Callback struct {
 	Callback CallbackFnType
 	Meta     CallbackMetaType
 	cancelling
+}
+
+type CallbackArgs struct {
+	Initiator interface{}
+	Event IEvent
+	Meta CallbackMetaType
 }
 
 type Bus struct {
@@ -60,20 +88,20 @@ func NewBus() *Bus {
 	}
 }
 
-func (b *Bus) NewEmitter(et EventType) Emitter {
+func (b *Bus) NewEmitter(et EventType, initiator interface{}) Emitter {
 	e := Emitter{
 		eventType: et,
-		ch:        make(chan IEvent),
+		Emitter:   make(chan IEvent),
 	}
-	b.RegisterEmitter(e)
+	b.RegisterEmitter(e, initiator)
 	return e
 }
 
-func (b *Bus) RegisterEmitter(e Emitter) {
+func (b *Bus) RegisterEmitter(e Emitter, initiator interface{}) {
 	b.emitterMux.Lock()
 	defer b.emitterMux.Unlock()
 	b.emitters = append(b.emitters, e)
-	go e.Serve(b)
+	go e.Serve(initiator, b)
 }
 
 func (b *Bus) NewCallback(et EventType, fn CallbackFnType, meta CallbackMetaType) Callback {
@@ -107,18 +135,19 @@ func (b *Bus) Cancel() {
 	}
 }
 
-func (e *Emitter) Serve(b *Bus) {
+func (e *Emitter) Serve(initiator interface{}, b *Bus) {
 	ticker := time.NewTicker(b.Latency)
 	for {
 		select {
-		case event := <-e.ch:
+		case event := <-e.Emitter:
+			event.SetType(e.eventType)
 			cbs, ok := b.subscribers[e.eventType]
 			if !ok {
 				continue
 			}
 			for _, cb := range cbs {
 				if !cb.IsCancelled() {
-					cb.Callback(event, cb.Meta)
+					go cb.Callback(CallbackArgs{initiator, event, cb.Meta})
 				}
 			}
 		case <-ticker.C:

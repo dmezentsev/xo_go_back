@@ -1,7 +1,8 @@
 package xo
 
-type SignType byte
-const XSign SignType = 'X'
-const OSign SignType = 'O'
+type SignType string
+const EmptySign SignType = "-"
+const XSign SignType = "x"
+const OSign SignType = "o"
 
 

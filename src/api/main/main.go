@@ -20,9 +20,9 @@ func main() {
 	e.GET("/room/:uid", Router.GetRoom)
 	e.POST("/room/:uid/participant", Router.NewParticipant)
 
-	e.POST("/room/xo", xoRouter.NewRoom)
-	e.POST("/room/xo/:roomUID/player", xoRouter.NewPlayer)
-	e.GET("/room/xo/:roomUID/player/:participantUID/connect", xoRouter.ConnectPlayer)
+	e.POST("/xo", xoRouter.NewGame)
+	e.POST("/xo/:roomUID/player", xoRouter.NewPlayer)
+	e.GET("/xo/:roomUID/player/:participantUID/connect", xoRouter.ConnectPlayer)
 
 	e.Logger.Debug(e.Start(":1323"))
 }
