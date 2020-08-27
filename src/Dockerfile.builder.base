@@ -1,0 +1,6 @@
+FROM golang:1.14.4
+
+RUN go get -d -v github.com/google/uuid \
+    && go get -d -v github.com/gorilla/websocket \
+    && go get -d -v github.com/labstack/echo \
+    && go get -d -v github.com/dgrijalva/jwt-go

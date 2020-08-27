@@ -22,14 +22,17 @@ type MoveEvent struct {
 	Y int `json:"y"`
 }
 
-func (g *Game) NewPlayer(room *app.RoomContext) (*Player, error) {
+func (g *Game) ValidateNewPlayer() error {
+	if len(g.players) >= 2 {
+		return errors.New("must be only two players")
+	}
+	return nil
+}
+
+func (g *Game) NewPlayer(participant *app.Participant) (*Player, error) {
 	g.mux.Lock()
 	defer g.mux.Unlock()
-	if len(g.players) >= 2 {
-		return nil, errors.New("must be only two players")
-	}
-	participant, err := room.NewParticipant()
-	if err != nil {
+	if err := g.ValidateNewPlayer(); err != nil {
 		return nil, err
 	}
 	var sign SignType
@@ -42,6 +45,7 @@ func (g *Game) NewPlayer(room *app.RoomContext) (*Player, error) {
 		Participant: participant,
 		Sign:        sign,
 	}
+	participant.Meta = fmt.Sprintf("%s-player", sign)
 	g.players = append(g.players, player)
 	player.MoveEmitter = g.Bus.NewEmitter(MoveEventType, player, player.onErrorMove)
 	participant.Bus.NewCallback(app.MessageAcceptedEventType, player.onMessageReceive, nil)

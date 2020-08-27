@@ -10,14 +10,15 @@ import (
 )
 
 type Participant struct {
-	UID               UIDType
-	Room              *RoomContext
-	Bus               *bus.Bus
-	Absorber          chan Message
+	Name string `json:"name"`
+	UID               UIDType `json:"uid"`
+	Room              *RoomContext `json:"-"`
+	Bus               *bus.Bus `json:"-"`
+	Absorber          chan Message `json:"-"`
 	connectionEmitter bus.Emitter
-	Connected         bool
+	Connected         bool `json:"connected"`
 	lastModified      time.Time
-	Meta              interface{}
+	Meta              interface{} `json:"meta"`
 }
 
 func (p *Participant) String() string {
@@ -27,30 +28,25 @@ func (p *Participant) String() string {
 func (room *RoomContext) GetParticipant(participantUID UIDType) (*Participant, error) {
 	room.participantMutex.RLock()
 	defer room.participantMutex.RUnlock()
-	participant, ok := room.Participants[participantUID]
+	participantIdx, ok := room.participantIndex[participantUID]
 	if !ok {
 		return nil, errors.New(fmt.Sprintf("participant with UID: '%s' doesn't exists", participantUID))
 	}
-	return participant, nil
+	return room.Participants[participantIdx], nil
 }
 
 func (room *RoomContext) GetParticipants() []*Participant {
 	room.participantMutex.RLock()
 	defer room.participantMutex.RUnlock()
-	participants := make([]*Participant, len(room.Participants))
-	i := 0
-	for _, p := range room.Participants {
-		participants[i] = p
-		i++
-	}
-	return participants
+	return room.Participants
 }
 
-func (room *RoomContext) NewParticipant() (*Participant, error) {
+func (room *RoomContext) NewParticipant(name string) (*Participant, error) {
 	room.participantMutex.Lock()
 	defer room.participantMutex.Unlock()
 	participantUID := room.generateParticipantUID()
 	participant := &Participant{
+		Name: name,
 		UID:          participantUID,
 		Room:         room,
 		lastModified: time.Now(),
@@ -58,19 +54,21 @@ func (room *RoomContext) NewParticipant() (*Participant, error) {
 		Connected:    false,
 	}
 	participant.Bus = bus.NewBus(participant.String())
-	room.Participants[participantUID] = participant
+	room.Participants = append(room.Participants, participant)
+	room.participantIndex[participantUID] = int32(len(room.Participants) - 1)
 	return participant, nil
 }
 
 func (room *RoomContext) DeleteParticipant(UID UIDType) error {
 	room.participantMutex.Lock()
 	defer room.participantMutex.Unlock()
-	_, ok := room.Participants[UID]
+	participantIdx, ok := room.participantIndex[UID]
 	if !ok {
 		return errors.New(fmt.Sprintf("participant with UID '%s' doesn't exists", UID))
 	}
 	room.Cancel()
-	delete(room.Participants, UID)
+	room.Participants = append(room.Participants[:participantIdx], room.Participants[participantIdx+1:]...)
+	delete(room.participantIndex, UID)
 	return nil
 }
 
@@ -139,7 +137,7 @@ func (room *RoomContext) generateParticipantUID() UIDType {
 	var participantUid UIDType
 	for {
 		participantUid = UIDType(uuid.New().String())
-		if _, ok := room.Participants[participantUid]; !ok {
+		if _, ok := room.participantIndex[participantUid]; !ok {
 			break
 		}
 	}

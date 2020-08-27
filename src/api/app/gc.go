@@ -13,7 +13,8 @@ func (app *Context) RunGC() {
 		case <-app.context.Done():
 			return
 		case <-t.C:
-			for roomUID, room := range app.rooms {
+			for roomUID, roomIdx := range app.roomIndex {
+				room := app.rooms[roomIdx]
 				if room.lastModified.Add(roomTTL).Before(time.Now()) {
 					app.DeleteRoom(roomUID)
 				}
@@ -30,8 +31,9 @@ func (room *RoomContext) RunGC() {
 		case <-room.context.Done():
 			return
 		case <-t.C:
-			for UID, p := range room.Participants {
-				if p.lastModified.Add(participantTTL).Before(time.Now()) {
+			for UID, participantIdx := range room.participantIndex {
+				participant := room.Participants[participantIdx]
+				if participant.lastModified.Add(participantTTL).Before(time.Now()) {
 					room.DeleteParticipant(UID)
 				}
 			}

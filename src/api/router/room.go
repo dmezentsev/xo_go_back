@@ -6,8 +6,15 @@ import (
 	"github.com/labstack/echo"
 
 	"api/app"
-	"api/router/protocol"
 )
+
+func (r *Context) GetRoomList(e echo.Context) error {
+	rooms, err := r.App.GetRoomList()
+	if err != nil {
+		return err
+	}
+	return e.JSON(http.StatusOK, rooms)
+}
 
 func (r *Context) GetRoom(e echo.Context) error {
 	UID := e.Param("uid")
@@ -15,5 +22,13 @@ func (r *Context) GetRoom(e echo.Context) error {
 	if err != nil {
 		return err
 	}
-	return e.JSON(http.StatusOK, protocol.RoomSerialize(room))
+	return e.JSON(http.StatusOK, room)
+}
+
+func (r *Context) DeleteRoom(e echo.Context) error {
+	UID := e.Param("uid")
+	if err := r.App.DeleteRoom(app.UIDType(UID)); err != nil {
+		return err
+	}
+	return e.NoContent(http.StatusOK)
 }

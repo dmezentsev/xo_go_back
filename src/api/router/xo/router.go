@@ -4,6 +4,7 @@ import (
 	"api/app"
 	"api/router"
 	"api/router/protocol"
+	"errors"
 	"github.com/labstack/echo"
 	"net/http"
 )
@@ -13,13 +14,17 @@ type RouterContext struct {
 }
 
 func (r *RouterContext) NewGame(e echo.Context) error {
-	room, err := r.App.NewRoom()
+	request := new(protocol.CreateRoomRequest)
+	if err := e.Bind(request); err != nil {
+		return err
+	}
+	room, err := r.App.NewRoom(request.Name)
 	if err != nil {
 		return e.JSON(http.StatusInternalServerError, err)
 	}
 	game := NewGame(room)
 	room.Meta = game
-	return e.JSON(http.StatusOK, protocol.RoomSerialize(room))
+	return e.JSON(http.StatusOK, room)
 }
 
 func (r *RouterContext) NewPlayer(e echo.Context) error {
@@ -27,14 +32,29 @@ func (r *RouterContext) NewPlayer(e echo.Context) error {
 	if err != nil {
 		return err
 	}
-
 	game := room.Meta.(*Game)
-	player, err := game.NewPlayer(room)
+	if game == nil {
+		return errors.New("nil game allocated")
+	}
+
+	if err := game.ValidateNewPlayer(); err != nil {
+		return err
+	}
+
+	request := new(protocol.ParticipantRequest)
+	if err := e.Bind(request); err != nil {
+		return err
+	}
+	participant, err := room.NewParticipant(request.Name)
+	if err != nil {
+		return err
+	}
+	player, err := game.NewPlayer(participant)
 	if err != nil {
 		return err
 	}
 
-	return e.JSON(http.StatusOK, protocol.ParticipantSerialize(player.Participant))
+	return e.JSON(http.StatusOK, player.Participant)
 }
 
 func (r *RouterContext) NewWatcher(e echo.Context) error {
@@ -42,14 +62,25 @@ func (r *RouterContext) NewWatcher(e echo.Context) error {
 	if err != nil {
 		return err
 	}
-
 	game := room.Meta.(*Game)
-	watcher, err := game.NewWatcher(room)
+	if game == nil {
+		return errors.New("nil game allocated")
+	}
+
+	request := new(protocol.ParticipantRequest)
+	if err := e.Bind(request); err != nil {
+		return err
+	}
+	participant, err := room.NewParticipant(request.Name)
+	if err != nil {
+		return err
+	}
+	watcher, err := game.NewWatcher(participant)
 	if err != nil {
 		return err
 	}
 
-	return e.JSON(http.StatusOK, protocol.ParticipantSerialize(watcher.Participant))
+	return e.JSON(http.StatusOK, watcher.Participant)
 }
 
 func (r *RouterContext) Connect(e echo.Context) error {

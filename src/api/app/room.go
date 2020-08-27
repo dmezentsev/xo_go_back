@@ -11,46 +11,57 @@ import (
 )
 
 type RoomContext struct {
-	UID              UIDType
-	App              *Context
-	Meta             interface{}
-	Bus              *bus.Bus
+	Name             string `json:"name"`
+	UID              UIDType `json:"uid"`
+	App              *Context `json:"-"`
+	Meta             interface{} `json:"meta"`
+	Bus              *bus.Bus `json:"-"`
 	context          context.Context
-	Cancel           context.CancelFunc
+	Cancel           context.CancelFunc `json:"-"`
 	lastModified     time.Time
-	Participants     map[UIDType]*Participant
+	Participants     []*Participant `json:"participant"`
+	participantIndex map[UIDType]int32
 	participantMutex sync.RWMutex
+}
+
+func (app *Context) GetRoomList() ([]*RoomContext, error) {
+	app.roomMutex.RLock()
+	defer app.roomMutex.RUnlock()
+	return app.rooms, nil
 }
 
 func (app *Context) GetRoom(roomUID UIDType) (*RoomContext, error) {
 	app.roomMutex.RLock()
 	defer app.roomMutex.RUnlock()
-	room, ok := app.rooms[roomUID]
+	roomIdx, ok := app.roomIndex[roomUID]
 	if !ok {
 		return nil, errors.New(fmt.Sprintf("room with UID: '%s' doesn't exists", roomUID))
 	}
+	room := app.rooms[roomIdx]
 	return room, nil
 }
 
-func (app *Context) NewRoom() (*RoomContext, error) {
+func (app *Context) NewRoom(name string) (*RoomContext, error) {
 	app.roomMutex.Lock()
 	defer app.roomMutex.Unlock()
 	roomUID := app.generateRoomUID()
 	ctx, cancel := context.WithCancel(context.Background())
-	participants := make(map[UIDType]*Participant)
 	room := &RoomContext{
-		UID:          roomUID,
-		App:          app,
-		lastModified: time.Now(),
-		context:      ctx,
-		Participants: participants,
+		Name:             name,
+		UID:              roomUID,
+		App:              app,
+		lastModified:     time.Now(),
+		context:          ctx,
+		Participants:     make([]*Participant, 0),
+		participantIndex: make(map[UIDType]int32),
 	}
 	room.Bus = bus.NewBus(room.String())
 	room.Cancel = func() {
 		room.Bus.Cancel()
 		cancel()
 	}
-	app.rooms[roomUID] = room
+	app.rooms = append(app.rooms, room)
+	app.roomIndex[roomUID] = int16(len(app.rooms) - 1)
 	return room, nil
 }
 
@@ -61,12 +72,14 @@ func (room *RoomContext) String() string {
 func (app *Context) DeleteRoom(roomUID UIDType) error {
 	app.roomMutex.Lock()
 	defer app.roomMutex.Unlock()
-	room, ok := app.rooms[roomUID]
+	roomIdx, ok := app.roomIndex[roomUID]
 	if !ok {
 		return errors.New(fmt.Sprintf("roomUID '%s' doesn't exists", roomUID))
 	}
+	room := app.rooms[roomIdx]
 	room.Cancel()
-	delete(app.rooms, roomUID)
+	delete(app.roomIndex, roomUID)
+	app.rooms = append(app.rooms[:roomIdx], app.rooms[roomIdx+1:]...)
 	return nil
 }
 
@@ -74,7 +87,7 @@ func (app *Context) generateRoomUID() UIDType {
 	var roomUid UIDType
 	for {
 		roomUid = UIDType(uuid.New().String())
-		if _, ok := app.rooms[roomUid]; !ok {
+		if _, ok := app.roomIndex[roomUid]; !ok {
 			break
 		}
 	}

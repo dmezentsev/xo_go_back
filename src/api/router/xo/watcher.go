@@ -9,14 +9,11 @@ type Watcher struct {
 	*app.Participant
 }
 
-func (g *Game) NewWatcher(room *app.RoomContext) (*Watcher, error) {
-	participant, err := room.NewParticipant()
-	if err != nil {
-		return nil, err
-	}
+func (g *Game) NewWatcher(participant *app.Participant) (*Watcher, error) {
 	watcher := &Watcher{
 		Participant: participant,
 	}
+	participant.Meta = "watcher"
 	participant.Bus.NewCallback(app.ConnectEventType, watcher.onUserConnect, g.Board)
 	g.Bus.NewCallback(BoardChangesEventType, watcher.onBoardChanged, nil)
 	g.Bus.NewCallback(EndGameEventType, watcher.onEndGame, nil)

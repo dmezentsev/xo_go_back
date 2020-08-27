@@ -22,6 +22,10 @@ func main() {
 	Router := router.Context{App: appCtx, Upgrader: app.Upgrader}
 	xoRouter := xo.RouterContext{Context: Router}
 
+	e.GET("/room", Router.GetRoomList)
+	e.GET("/room/:uid", Router.GetRoom)
+	e.DELETE("/room/:uid", Router.DeleteRoom)
+
 	e.POST("/xo", xoRouter.NewGame)
 	e.POST("/xo/:roomUID/player", xoRouter.NewPlayer)
 	e.POST("/xo/:roomUID/watcher", xoRouter.NewWatcher)
