@@ -4,15 +4,27 @@ import (
 	"api/app"
 	"api/router"
 	"api/router/xo"
+	"fmt"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/labstack/gommon/log"
+	"net/http"
 	"os"
 )
 
 func main() {
 	e := echo.New()
 	e.Use(middleware.Logger())
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost"},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+	}))
+	e.HTTPErrorHandler = func(err error, c echo.Context) {
+		fmt.Println(err)
+		if err != nil {
+			err = c.JSON(http.StatusInternalServerError, map[string]interface{}{"message": err.Error()})
+		}
+	}
 	e.Logger.SetLevel(log.DEBUG)
 	mode, exists := os.LookupEnv("MOD")
 	if !exists {
