@@ -10,10 +10,10 @@ import (
 )
 
 type Participant struct {
-	Name string `json:"name"`
-	UID               UIDType `json:"uid"`
+	Name              string       `json:"name"`
+	UID               UIDType      `json:"uid"`
 	Room              *RoomContext `json:"-"`
-	Bus               *bus.Bus `json:"-"`
+	Bus               *bus.Bus     `json:"-"`
 	Absorber          chan Message `json:"-"`
 	connectionEmitter bus.Emitter
 	Connected         bool `json:"connected"`
@@ -46,7 +46,7 @@ func (room *RoomContext) NewParticipant(name string) (*Participant, error) {
 	defer room.participantMutex.Unlock()
 	participantUID := room.generateParticipantUID()
 	participant := &Participant{
-		Name: name,
+		Name:         name,
 		UID:          participantUID,
 		Room:         room,
 		lastModified: time.Now(),

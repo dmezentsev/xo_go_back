@@ -23,10 +23,10 @@ type Context struct {
 func NewApp(mode string) *Context {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Context{
-		context: ctx,
-		Cancel:  cancel,
-		Mode:    mode,
-		rooms:   make([]*RoomContext, 0),
-		roomIndex:   make(map[UIDType]int16),
+		context:   ctx,
+		Cancel:    cancel,
+		Mode:      mode,
+		rooms:     make([]*RoomContext, 0),
+		roomIndex: make(map[UIDType]int16),
 	}
 }

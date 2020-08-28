@@ -23,10 +23,10 @@ type Board struct {
 }
 
 type Game struct {
-	Type    string `json:"type"`
+	Type    string           `json:"type"`
 	Room    *app.RoomContext `json:"-"`
-	Board   *Board `json:"-"`
-	Bus     *bus.Bus `json:"-"`
+	Board   *Board           `json:"-"`
+	Bus     *bus.Bus         `json:"-"`
 	mux     sync.RWMutex
 	players []*Player
 }
@@ -34,7 +34,7 @@ type Game struct {
 func NewGame(room *app.RoomContext) *Game {
 	board := NewBoard(3, 3)
 	g := &Game{
-		Type: "xo",
+		Type:    "xo",
 		Room:    room,
 		Board:   board,
 		players: make([]*Player, 0),

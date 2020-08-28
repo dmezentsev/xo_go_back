@@ -11,11 +11,11 @@ import (
 )
 
 type RoomContext struct {
-	Name             string `json:"name"`
-	UID              UIDType `json:"uid"`
-	App              *Context `json:"-"`
+	Name             string      `json:"name"`
+	UID              UIDType     `json:"uid"`
+	App              *Context    `json:"-"`
 	Meta             interface{} `json:"meta"`
-	Bus              *bus.Bus `json:"-"`
+	Bus              *bus.Bus    `json:"-"`
 	context          context.Context
 	Cancel           context.CancelFunc `json:"-"`
 	lastModified     time.Time

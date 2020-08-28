@@ -90,13 +90,13 @@ type Bus struct {
 	Description string
 }
 
-const defaultLatency = 50 * time.Millisecond
+const DefaultLatency = 230 * time.Millisecond
 
 func NewBus(desc string) *Bus {
 	return &Bus{
 		emitters:    make([]Emitter, 0),
 		subscribers: make(map[EventType][]Callback),
-		Latency:     defaultLatency,
+		Latency:     DefaultLatency,
 		Description: desc,
 	}
 }
@@ -149,24 +149,22 @@ func (b *Bus) Cancel() {
 	}
 }
 
+func (e *Emitter) Cancel() {
+	e.Cancelled = true
+	close(e.Emitter)
+}
+
 func (e *Emitter) Serve(initiator interface{}, b *Bus) {
-	ticker := time.NewTicker(b.Latency)
 	for {
-		select {
-		case event := <-e.Emitter:
-			event.SetType(e.eventType)
-			cbs, ok := b.subscribers[e.eventType]
-			if !ok {
-				continue
-			}
-			for _, cb := range cbs {
-				if !cb.IsCancelled() {
-					go e.runCallback(cb, initiator, event)
-				}
-			}
-		case <-ticker.C:
-			if e.Cancelled {
-				return
+		event := <-e.Emitter
+		event.SetType(e.eventType)
+		cbs, ok := b.subscribers[e.eventType]
+		if !ok {
+			continue
+		}
+		for _, cb := range cbs {
+			if !cb.IsCancelled() {
+				go e.runCallback(cb, initiator, event)
 			}
 		}
 	}
