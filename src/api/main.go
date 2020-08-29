@@ -16,7 +16,13 @@ func main() {
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost", "http://api.xo.dm-fish.com", "http://xo.dm-fish.com"},
+		AllowOrigins: []string{
+			"http://localhost",
+			"http://api.xo.dm-fish.com",
+			"http://xo.dm-fish.com",
+			"https://api.xo.dm-fish.com",
+			"https://xo.dm-fish.com",
+		},
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
 	}))
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
