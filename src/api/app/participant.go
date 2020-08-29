@@ -101,8 +101,6 @@ func (p *Participant) Connect(transport *Transport) error {
 				transport.Writer <- data
 			case <-transport.Context.Done():
 				return
-			default:
-				time.Sleep(100 * time.Millisecond)
 			}
 		}
 	}()
@@ -120,8 +118,6 @@ func (p *Participant) Connect(transport *Transport) error {
 				emitter.Emitter <- bus.Event{Payload: msg}
 			case <-transport.Context.Done():
 				return
-			default:
-				time.Sleep(100 * time.Millisecond)
 			}
 		}
 	}()

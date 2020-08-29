@@ -138,6 +138,9 @@ func (b *Bus) RegisterCallback(et EventType, cb Callback) {
 }
 
 func (b *Bus) Cancel() {
+	if b.Cancelled {
+		return
+	}
 	b.Cancelled = true
 	for _, e := range b.emitters {
 		e.Cancel()
@@ -150,13 +153,15 @@ func (b *Bus) Cancel() {
 }
 
 func (e *Emitter) Cancel() {
+	if e.Cancelled {
+		return
+	}
 	e.Cancelled = true
 	close(e.Emitter)
 }
 
 func (e *Emitter) Serve(initiator interface{}, b *Bus) {
-	for {
-		event := <-e.Emitter
+	for event := range e.Emitter {
 		event.SetType(e.eventType)
 		cbs, ok := b.subscribers[e.eventType]
 		if !ok {
