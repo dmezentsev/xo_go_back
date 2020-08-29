@@ -13,7 +13,6 @@ jobs:
       - name: Login to registry
         run: docker login --username oauth --password $DOCKER_TOKEN $DOCKER_REPO
       - uses: actions/checkout@master
-      - uses: ./src
       - name: Build image
         run: docker build . -t $DOCKER_REPO/$DOCKER_REGISTRY/xo-back-api:${GITHUB_REF:11}
       - name: Push image to registry
