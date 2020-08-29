@@ -1,4 +1,4 @@
-FROM xo-api-base as builder
+FROM cr.yandex/crpgmqr8c0em34a7i9i7/xo-api-builder:1.0.0 as builder
 ADD ./api /go/src/api
 WORKDIR /go/src/api
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o api .
