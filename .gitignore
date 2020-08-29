@@ -16,6 +16,3 @@
 
 .idea/
 pkg/
-
-# GitHub Actions
-.github/
