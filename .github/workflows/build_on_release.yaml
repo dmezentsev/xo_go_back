@@ -1,6 +1,7 @@
 name: Build
 on:
   release:
+    types: [published]
 jobs:
   build_and_pub:
     runs-on: [ubuntu-latest]
