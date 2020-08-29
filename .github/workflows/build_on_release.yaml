@@ -7,10 +7,10 @@ jobs:
     env:
       DOCKER_REPO: ${{ secrets.DOCKER_REPO }}
       DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
-      DOCKER_JSON_KEY: ${{ secrets.DOCKER_JSON_KEY }}
+      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
     steps:
       - name: Login to registry
-        run: echo ${{ secrets.DOCKER_JSON_KEY }} | docker login --username json_key --password-stdin $DOCKER_REPO
+        run: docker login --username oauth --password $DOCKER_TOKEN $DOCKER_REPO
       - uses: actions/checkout@master
       - uses: ./src
       - name: Build image
